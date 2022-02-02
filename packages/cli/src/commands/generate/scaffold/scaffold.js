@@ -330,7 +330,6 @@ const pageFiles = async (
         templatePath: path.join('pages', page),
       }),
       {
-        idType,
         idTsType,
         name,
         pascalScaffoldPath,
@@ -369,7 +368,7 @@ const componentFiles = async (
     },
     DateTime: {
       componentName: 'DatetimeLocalField',
-      deserilizeFunction: 'formatDatetime',
+      deserializeFunction: 'formatDatetime',
       listDisplayFunction: 'timeTag',
       displayFunction: 'timeTag',
     },
@@ -382,16 +381,20 @@ const componentFiles = async (
         `{{ valueAsJSON: true${isRequired ? ', required: true' : ''} }}`,
       displayFunction: 'jsonDisplay',
       listDisplayFunction: 'jsonTruncate',
-      deserilizeFunction: 'JSON.stringify',
+      deserializeFunction: 'JSON.stringify',
     },
     Float: {
+      validation: (isRequired) =>
+        `{{ valueAsNumber: true${isRequired ? ', required: true' : ''} }}`,
+    },
+    Decimal: {
       validation: (isRequired) =>
         `{{ valueAsNumber: true${isRequired ? ', required: true' : ''} }}`,
     },
     default: {
       componentName: 'TextField',
       defaultProp: 'defaultValue',
-      deserilizeFunction: '',
+      deserializeFunction: '',
       validation: '{{ required: true }}',
       displayFunction: undefined,
       listDisplayFunction: 'truncate',
@@ -422,9 +425,9 @@ const componentFiles = async (
         defaultProp:
           componentMetadata[column.type]?.defaultProp ||
           componentMetadata.default.defaultProp,
-        deserilizeFunction:
-          componentMetadata[column.type]?.deserilizeFunction ||
-          componentMetadata.default.deserilizeFunction,
+        deserializeFunction:
+          componentMetadata[column.type]?.deserializeFunction ||
+          componentMetadata.default.deserializeFunction,
         validation,
         listDisplayFunction:
           componentMetadata[column.type]?.listDisplayFunction ||
