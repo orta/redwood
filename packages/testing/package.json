@@ -13,7 +13,7 @@
     "@redwoodjs/internal": "^0.33.2",
     "@redwoodjs/router": "^0.33.2",
     "@redwoodjs/web": "^0.33.2",
-    "@testing-library/react": "11.2.7",
+    "@testing-library/react": "12.1.5",
     "@types/react": "17.0.9",
     "msw": "0.29.0"
   },
