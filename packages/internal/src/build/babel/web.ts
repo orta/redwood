@@ -11,12 +11,16 @@ import {
   getCommonPlugins,
   registerBabel,
   RegisterHookOptions,
+  parseTypeScriptConfigFiles,
+  getPathsFromConfig,
 } from './common'
 
 export const getWebSideBabelPlugins = (
   { forJest, forVite }: Flags = { forJest: false, forVite: false }
 ) => {
   const rwjsPaths = getPaths()
+  // Get the TS configs in the api and web sides as an object
+  const tsConfigs = parseTypeScriptConfigFiles()
 
   // Vite does not need these plugins
   const commonPlugins = forVite ? [] : getCommonPlugins()
@@ -31,19 +35,14 @@ export const getWebSideBabelPlugins = (
             // Jest monorepo and multi project runner is not correctly determining
             // the `cwd`: https://github.com/facebook/jest/issues/7359
             forJest ? rwjsPaths.web.src : './src',
+          // adds the paths from [ts|js]config.json to the module resolver
+          ...getPathsFromConfig(tsConfigs.web),
         },
         root: [rwjsPaths.web.base],
         cwd: 'packagejson',
         loglevel: 'silent', // to silence the unnecessary warnings
       },
       'rwjs-module-resolver',
-    ],
-    [
-      require('../babelPlugins/babel-plugin-redwood-src-alias').default,
-      {
-        srcAbsPath: rwjsPaths.web.src,
-      },
-      'rwjs-babel-src-alias',
     ],
     [
       require('../babelPlugins/babel-plugin-redwood-directory-named-import')
@@ -77,32 +76,16 @@ export const getWebSideBabelPlugins = (
       'rwjs-web-auto-import',
     ],
     ['babel-plugin-graphql-tag', undefined, 'rwjs-babel-graphql-tag'],
-    [
-      'inline-react-svg',
-      {
-        svgo: {
-          plugins: [
-            {
-              name: 'removeAttrs',
-              params: { attrs: '(data-name)' },
-            },
-            // Otherwise having style="xxx" breaks
-            'convertStyleToAttrs',
-          ],
-        },
-      },
-      'rwjs-inline-svg',
-    ],
-
     // === Handling redwood "magic"
-  ].filter(Boolean)
+  ].filter(Boolean) as TransformOptions[]
 
   return plugins
 }
 
 export const getWebSideOverrides = (
-  { staticImports }: Flags = {
-    staticImports: false,
+  { prerender, forVite }: Flags = {
+    prerender: false,
+    forVite: false,
   }
 ) => {
   const overrides = [
@@ -119,7 +102,8 @@ export const getWebSideOverrides = (
           require('../babelPlugins/babel-plugin-redwood-routes-auto-loader')
             .default,
           {
-            useStaticImports: staticImports,
+            prerender,
+            vite: forVite,
           },
         ],
       ],
@@ -200,7 +184,7 @@ export const getWebSideBabelConfigPath = () => {
 // These flags toggle on/off certain features
 export interface Flags {
   forJest?: boolean // will change the alias for module-resolver plugin
-  staticImports?: boolean // will use require instead of import for routes-auto-loader plugin
+  prerender?: boolean // changes what babel-plugin-redwood-routes-auto-loader does
   forVite?: boolean
 }
 
@@ -221,9 +205,10 @@ export const getWebSideDefaultBabelConfig = (options: Flags = {}) => {
 
 // Used in prerender only currently
 export const registerWebSideBabelHook = ({
+  forVite = false,
   plugins = [],
   overrides = [],
-}: RegisterHookOptions = {}) => {
+}: RegisterHookOptions & { forVite?: boolean } = {}) => {
   const defaultOptions = getWebSideDefaultBabelConfig()
   registerBabel({
     ...defaultOptions,
@@ -233,7 +218,10 @@ export const registerWebSideBabelHook = ({
     cache: false,
     // We only register for prerender currently
     // Static importing pages makes sense
-    overrides: [...getWebSideOverrides({ staticImports: true }), ...overrides],
+    overrides: [
+      ...getWebSideOverrides({ prerender: true, forVite }),
+      ...overrides,
+    ],
   })
 }
 

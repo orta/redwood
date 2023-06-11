@@ -192,9 +192,9 @@ async function getAuthHandler(module) {
     })
   }
 
-  const { handler } = await import(module)
+  const setupModule = await import(module)
 
-  return handler
+  return setupModule.default.handler
 }
 
 /**
@@ -220,7 +220,7 @@ function isInstalled(module) {
   // Check any of the places require would look for this module.
   // This enables testing auth setup packages with `yarn rwfw project:copy`.
   //
-  // We can't use require.resolve here because it cahces the exception
+  // We can't use require.resolve here because it caches the exception
   // Making it impossible to require when we actually do install it...
   return require.resolve
     .paths(`${module}/package.json`)

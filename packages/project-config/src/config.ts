@@ -59,6 +59,26 @@ interface BrowserTargetConfig {
   sourceMap: boolean
 }
 
+interface GraphiQLStudioConfig {
+  endpoint?: string
+  authImpersonation?: AuthImpersonationConfig
+}
+
+type SupportedAuthImpersonationProviders = 'dbAuth' | 'netlify' | 'supabase'
+
+interface AuthImpersonationConfig {
+  authProvider?: SupportedAuthImpersonationProviders
+  jwtSecret?: string
+  userId?: string
+  email?: string
+  roles?: string[]
+}
+
+interface StudioConfig {
+  inMemory: boolean
+  graphiql?: GraphiQLStudioConfig
+}
+
 export interface Config {
   web: BrowserTargetConfig
   api: NodeTargetConfig
@@ -73,6 +93,24 @@ export interface Config {
   notifications: {
     versionUpdates: string[]
   }
+  experimental: {
+    opentelemetry: {
+      enabled: boolean
+      apiSdk?: string
+    }
+    studio: StudioConfig
+    cli: {
+      autoInstall: boolean
+      plugins: CLIPlugin[]
+    }
+    useSDLCodeGenForGraphQLTypes: boolean
+  }
+}
+
+export interface CLIPlugin {
+  package: string
+  version?: string
+  enabled?: boolean
 }
 
 // Note that web's includeEnvironmentVariables is handled in `webpack.common.js`
@@ -84,7 +122,7 @@ const DEFAULT_CONFIG: Config = {
     port: 8910,
     path: './web',
     target: TargetEnum.BROWSER,
-    bundler: BundlerEnum.WEBPACK,
+    bundler: BundlerEnum.VITE,
     includeEnvironmentVariables: [],
     apiUrl: '/.redwood/functions',
     fastRefresh: true,
@@ -112,6 +150,34 @@ const DEFAULT_CONFIG: Config = {
   notifications: {
     versionUpdates: [],
   },
+  experimental: {
+    opentelemetry: {
+      enabled: false,
+      apiSdk: undefined,
+    },
+    studio: {
+      inMemory: false,
+      graphiql: {
+        endpoint: 'graphql',
+        authImpersonation: {
+          authProvider: undefined,
+          userId: undefined,
+          email: undefined,
+          roles: undefined,
+          jwtSecret: 'secret',
+        },
+      },
+    },
+    cli: {
+      autoInstall: true,
+      plugins: [
+        {
+          package: '@redwoodjs/cli-storybook',
+        },
+      ],
+    },
+    useSDLCodeGenForGraphQLTypes: false,
+  },
 }
 
 /**
@@ -120,8 +186,21 @@ const DEFAULT_CONFIG: Config = {
  */
 export const getConfig = (configPath = getConfigPath()): Config => {
   try {
-    const rawConfig = envInterpolation(fs.readFileSync(configPath, 'utf8'))
-    return merge(DEFAULT_CONFIG, toml.parse(rawConfig))
+    return merge(DEFAULT_CONFIG, getRawConfig(configPath))
+  } catch (e) {
+    throw new Error(`Could not parse "${configPath}": ${e}`)
+  }
+}
+
+/**
+ * Returns the JSON parse of the config file without any default values.
+ *
+ * @param configPath Path to the config file, defaults to automatically find the project `redwood.toml` file
+ * @returns A JSON object from the parsed toml values
+ */
+export function getRawConfig(configPath = getConfigPath()) {
+  try {
+    return toml.parse(envInterpolation(fs.readFileSync(configPath, 'utf8')))
   } catch (e) {
     throw new Error(`Could not parse "${configPath}": ${e}`)
   }

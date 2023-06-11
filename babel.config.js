@@ -2,7 +2,7 @@ const path = require('path')
 
 const packageJSON = require(path.join(__dirname, 'package.json'))
 
-const TARGETS_NODE = '16.20'
+const TARGETS_NODE = '18.16'
 
 // Run `npx browserslist "defaults, not IE 11, not IE_Mob 11"` to see a list
 // of target browsers.
@@ -34,7 +34,10 @@ module.exports = {
           // List of supported proposals: https://github.com/zloirock/core-js/blob/master/docs/2019-03-19-core-js-3-babel-and-a-look-into-the-future.md#ecmascript-proposals
           proposals: true,
         },
-        exclude: ['es.error.cause'],
+        exclude: [
+          'es.error.cause',
+          process.env.NODE_ENV !== 'test' && 'proposal-dynamic-import',
+        ].filter(Boolean),
       },
     ],
     '@babel/preset-react',

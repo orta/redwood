@@ -3,11 +3,10 @@ import path from 'path'
 
 import execa from 'execa'
 import { Listr } from 'listr2'
-import rimraf from 'rimraf'
+import { rimraf } from 'rimraf'
 import terminalLink from 'terminal-link'
 
 import { buildApi } from '@redwoodjs/internal/dist/build/api'
-import { buildWeb } from '@redwoodjs/internal/dist/build/web'
 import { loadAndValidateSdls } from '@redwoodjs/internal/dist/validateSchema'
 import { detectPrerenderRoutes } from '@redwoodjs/prerender/detection'
 import { timedTelemetry, errorTelemetry } from '@redwoodjs/telemetry'
@@ -73,8 +72,8 @@ export const handler = async ({
     },
     side.includes('api') && {
       title: 'Building API...',
-      task: async () => {
-        const { errors, warnings } = await buildApi()
+      task: () => {
+        const { errors, warnings } = buildApi()
 
         if (errors.length) {
           console.error(errors)
@@ -97,8 +96,13 @@ export const handler = async ({
       title: 'Building Web...',
       task: async () => {
         if (getConfig().web.bundler === 'vite') {
-          await buildWeb({
-            verbose,
+          // @NOTE: we're using the vite build command here, instead of the buildWeb function
+          // because we want the process.cwd to be the web directory, not the root of the project
+          // This is important for postcss/tailwind to work correctly
+          await execa(`yarn rw-vite-build`, {
+            stdio: verbose ? 'inherit' : 'pipe',
+            shell: true,
+            cwd: rwjsPaths.web.base, // <-- important for postcss/tailwind
           })
         } else {
           await execa(
@@ -134,10 +138,7 @@ export const handler = async ({
           'file://' + rwjsPaths.web.routes
         )}.`
       )
-
-      return
     }
-
     // Running a separate process here, otherwise it wouldn't pick up the
     // generated Prisma Client due to require module caching
     await execa('yarn rw prerender', {

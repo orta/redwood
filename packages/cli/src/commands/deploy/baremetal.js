@@ -4,6 +4,7 @@ import path from 'path'
 import toml from '@iarna/toml'
 import boxen from 'boxen'
 import { Listr } from 'listr2'
+import { env as envInterpolation } from 'string-env-interpolation'
 import terminalLink from 'terminal-link'
 import { titleCase } from 'title-case'
 
@@ -110,6 +111,12 @@ export const builder = (yargs) => {
   yargs.option('rollback', {
     describe: 'Add/remove the maintenance page',
     help: 'Rollback [count] number of releases',
+  })
+
+  yargs.option('verbose', {
+    describe: 'Verbose mode, for debugging purposes',
+    default: false,
+    type: 'boolean',
   })
 
   // TODO: Allow option to pass --sides and only deploy select sides instead of all, always
@@ -588,14 +595,15 @@ const mergeLifecycleEvents = (lifecycle, other) => {
   return lifecycleCopy
 }
 
-export const parseConfig = (yargs, configToml) => {
+export const parseConfig = (yargs, rawConfigToml) => {
+  const configToml = envInterpolation(rawConfigToml)
   const config = toml.parse(configToml)
   let envConfig
   const emptyLifecycle = {}
 
   verifyConfig(config, yargs)
 
-  // start with an emtpy set of hooks, { before: {}, after: {} }
+  // start with an empty set of hooks, { before: {}, after: {} }
   for (const hook of LIFECYCLE_HOOKS) {
     emptyLifecycle[hook] = {}
   }
