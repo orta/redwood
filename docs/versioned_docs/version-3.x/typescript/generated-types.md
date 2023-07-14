@@ -142,6 +142,35 @@ These types will also be handled automatically. But if you're returning a differ
 
 Redwood uses [GraphQL Code Generator](https://www.graphql-code-generator.com) (aka graphql-codegen) to generate types for your GraphQL operations and SDLs. It's even configured to use the types from your generated Prisma Client, to make sure that your resolvers are strongly typed!
 
+There is also an experimental code generator based on [sdl-codegen](https://github.com/sdl-codegen/sdl-codegen) available. sdl-codegen is a fresh implementation of code generation for service files, built with Redwood in mind. It is currently in opt-in and can be enabled by setting the `experimentalSdlCodeGen` flag to `true` in your `redwood.toml` file:
+
+```toml title="redwood.toml"
+[experimental]
+  useSDLCodeGenForGraphQLTypes = true
+```
+
+Running `yarn rw g types` will generate types for your resolvers on a per-file basis, this feature can be paired with the optional eslint auto-fix rule to have types automatically applied to your resolvers in TypeScript service files by editing your root `package.json` with:
+
+```diff title="package.json"
+   "eslintConfig": {
+     "extends": "@redwoodjs/eslint-config",
+     "root": true,
+     "parserOptions": {
+       "warnOnUnsupportedTypeScriptVersion": false
+     },
++    "overrides": [
++      {
++        "files": [
++          "api/src/services/**/*.ts"
++        ],
++        "rules": {
++          "@redwoodjs/service-type-annotations": "error"
++        }
++      }
+     ]
+   },
+```
+
 ### Customizing GraphQL Code Generation
 
 While the default settings are configured so that things just work️, you can customize them to your liking by adding a `./codegen.yml` file to the root of your project.
@@ -166,7 +195,7 @@ For completeness, [here's the docs](https://www.graphql-code-generator.com/docs/
 
 :::tip Using VSCode?
 
-As a part of type generation, the [VSCode GraphQL extension](https://marketplace.visualstudio.com/items?itemName=GraphQL.vscode-graphql) configures itself based on the merged schema Redwood generates in `.redwood/schema.graphql`.
+As a part of type generation, the [GraphQL: Language Feature Support extension](https://marketplace.visualstudio.com/items?itemName=GraphQL.vscode-graphql) configures itself based on the merged schema Redwood generates in `.redwood/schema.graphql`.
 You can configure it further in `graphql.config.js` at the root of your project.
 
 :::
